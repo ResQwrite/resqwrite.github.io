@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="./css/styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YG7H1GDQ4G"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -142,7 +143,6 @@
                             <label for="name" style="margin-left: 1rem;">Your Name</label>
                             <input type="text" id="name" name="name" class="form-control" placeholder="Enter your name"
                                 required>
-                            <span class="input-icon">✓</span>
                             <span class="error-message" id="nameError">Please enter a valid name (letters and spaces
                                 only)</span>
                         </div>
@@ -151,8 +151,14 @@
                             <label for="email" style="margin-left: 1rem;">Email Address</label>
                             <input type="email" id="email" name="email" class="form-control"
                                 placeholder="Enter your email" required>
-                            <span class="input-icon">✓</span>
                             <span class="error-message" id="emailError">Please enter a valid email address</span>
+                        </div>
+
+                        <div class="form-group" id="numberGroup">
+                            <label for="phone" style="margin-left: 1rem;">Contact Number</label>
+                            <input type="tel" id="phone" name="phone" class="form-control"
+                                placeholder="Enter your contact number" required>
+                            <span class="error-message" id="numberError">Please enter a valid phone number</span>
                         </div>
 
                         <div class="form-group" id="messageGroup">
@@ -176,12 +182,25 @@
                         const nameInput = document.getElementById('name');
                         const emailInput = document.getElementById('email');
                         const messageInput = document.getElementById('message');
+                        const phoneInput = document.getElementById('phone');
                         const nameGroup = document.getElementById('nameGroup');
                         const emailGroup = document.getElementById('emailGroup');
                         const messageGroup = document.getElementById('messageGroup');
                         const successMessage = document.getElementById('successMessage');
 
-                        [nameInput, emailInput, messageInput].forEach(input => {
+                        const iti = window.intlTelInput(phoneInput, {
+                            initialCountry: "auto",
+                            separateDialCode: true,
+                            geoIpLookup: function (callback) {
+                                fetch('https://ipapi.co/json')
+                                    .then(response => response.json())
+                                    .then(data => callback(data.country_code))
+                                    .catch(() => callback("us"));
+                            },
+                            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
+                        });
+
+                        [nameInput, emailInput, messageInput, phoneInput].forEach(input => {
                             input.addEventListener('focus', function () {
                                 const parentGroup = this.closest('.form-group');
                                 if (parentGroup) {
@@ -212,11 +231,11 @@
 
                             let isValid = true;
 
-                            [name, email, message].forEach(field => {
+                            [name, email, message, phoneInput].forEach(field => {
                                 field.classList.remove("error-border");
                             });
 
-                            const nameRegex = /^[a-zA-Z\\s]+$/;
+                            const nameRegex = /^[a-zA-Z\s]+$/;
                             if (!name.value.trim() || !nameRegex.test(name.value.trim())) {
                                 name.classList.add("error-border");
                                 isValid = false;
@@ -233,11 +252,17 @@
                                 isValid = false;
                             }
 
+                            if (!iti.isValidNumber()) {
+                                phoneInput.classList.add("error-border");
+                                const group = phoneInput.closest('.form-group');
+                                showError(group, document.getElementById('numberError').textContent);
+                                isValid = false;
+                            }
+
                             if (!isValid) {
-                                e.preventDefault(); // only prevent submission if invalid
+                                e.preventDefault();
                             }
                         }
-
 
                         form.addEventListener('submit', validateFormOnSubmit);
 
@@ -263,6 +288,11 @@
                             } else if (field.id === 'message') {
                                 if (value.length < 10) {
                                     showError(parentGroup, document.getElementById('messageError').textContent);
+                                    return false;
+                                }
+                            } else if (field.id === 'phone') {
+                                if (!iti.isValidNumber()) {
+                                    showError(parentGroup, document.getElementById('numberError').textContent);
                                     return false;
                                 }
                             }
@@ -601,6 +631,7 @@
     <script src="js/plugins.js"></script>
     <script src="js/main.js"></script>
     <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
 </body>
 
 </html>
